@@ -1,0 +1,44 @@
+# requires clang-format >= 9
+ColumnLimit: 79
+
+# tabs
+UseTab: ForIndentation
+TabWidth: 4
+IndentWidth: 4
+ContinuationIndentWidth: 2
+
+# braces
+#BreakBeforeBraces: Allman
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterControlStatement: true
+  AfterEnum: true
+  AfterFunction: true
+  AfterStruct: true
+  AfterUnion: true
+  BeforeElse: true
+
+# pp directives
+IndentPPDirectives: None
+
+# misc
+MaxEmptyLinesToKeep: 2
+Cpp11BracedListStyle: false
+AlwaysBreakAfterReturnType: All
+AlignEscapedNewlines: Left
+AllowShortBlocksOnASingleLine: false
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+ReflowComments: false
+BreakBeforeBinaryOperators: None
+BreakBeforeTernaryOperators: true
+AlignOperands: false
+
+# function decl/def/call
+BinPackParameters: false
+BinPackArguments: false
+AlignAfterOpenBracket: AlwaysBreak
+# not supported in clang-format < 9
+AllowAllArgumentsOnNextLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
