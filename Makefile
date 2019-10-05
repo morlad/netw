@@ -43,11 +43,16 @@ endif
 
 ifeq ($(os),macos)
 TARGET_ARCH += -arch x86_64 -mmacosx-version-min=$(MIN_MACOS_VERSION)
+CFLAGS += -Weverything
 example: LDFLAGS += -framework Foundation
 endif
 
-ifeq ($(os),macos)
-CFLAGS += -Weverything
+ifeq ($(os),windows)
+example: LDLIBS += -lwinhttp.lib
+endif
+
+ifeq ($(os),linux)
+example: LDLIBS += -lpthread -lcurl
 endif
 
 example: example.c $(srcs)
