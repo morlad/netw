@@ -1,5 +1,4 @@
 # netw
-
 *netw* is a low-level abstraction layer to make HTTP requests via
 system-specific HTTP/network libraries.
 
@@ -11,7 +10,9 @@ system-specific HTTP/network libraries.
 It also allows setting random [delays](#netw_set_delay) and [errors](#netw_set_error_rate) to test the
 handeling of those in the client code.
 
-# Overview
+# Quick Start
+Before using any of *netw*'s request functions in your program [netw_init()](#netw_init)
+needs to be called.
 
 [netw_request()](#netw_request) and [netw_download_to()](#netw_download_to) spin off requests
 asynchronously.
@@ -20,13 +21,10 @@ When a request is completed (either success or failure)
 their respective callbacks ([netw_request_callback](#netw_request_callback),
 [netw_download_callback](#netw_download_callback)) are called.
 
-Before using any of *netw*'s request functions in your program [netw_init()](#netw_init)
-needs to be called.
+Finally call [netw_deinit()](#netw_deinit) to shut down netw.
 
 # Examples
-
 ## Download homepage of github
-
 ```c
 #include "netw.h"
 
@@ -56,8 +54,23 @@ main(void) {
 }
 ```
 
-# API
+# Usage
+## Compilation
+To use *netw* in your project integrate the source file for your platform into your build process:
+- Windows: `netw-win.c`
+- macOS: `netw-macos.m`
+- Linux, FreeBSD: `netw-libcurl.c`
 
+If you want to use [netw_percent_encode()](#netw_percent_encode) you also need to integrate
+the system agnostic file `netw.c` into your build.
+
+## Linking
+*netw* depends on the following libraries:
+- Windows: `winhttp.lib`
+- macOS: `framework Foundation`
+- Linux, FreeBSD: `pthread`, `curl`
+
+# API
 * Functions
     - [netw_init()](#netw_init)
     - [netw_deinit()](#netw_deinit)
