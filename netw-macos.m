@@ -42,7 +42,7 @@ struct netw
 {
 	NSURLSession *session;
 	MyDelegate *delegate;
-	CFMutableDictionaryRef task_dict;
+	NSMutableDictionary *task_dict;
 	int error_rate;
 	int min_delay;
 	int max_delay;
@@ -65,19 +65,6 @@ struct task
 	CFMutableDataRef buffer;
 	FILE *file;
 };
-
-
-static struct task *
-task_from_dictionary(CFDictionaryRef in_dict, NSURLSessionTask *in_task)
-{
-	union
-	{
-		void *nc;
-		void const *c;
-	} cnc;
-	cnc.c = CFDictionaryGetValue(in_dict, in_task);
-	return cnc.nc;
-}
 
 
 static void
@@ -113,7 +100,8 @@ is_random_server_error(void)
 {
 	ASSERT(nstask.state == NSURLSessionTaskStateCompleted);
 
-	struct task *task = task_from_dictionary(l_netw.task_dict, nstask);
+	NSValue *value = [l_netw.task_dict objectForKey:nstask];
+	struct task *task = value.pointerValue;
 
 	random_delay();
 
@@ -129,7 +117,7 @@ is_random_server_error(void)
 			  CFDataGetBytePtr(task->buffer),
 			  (size_t)CFDataGetLength(task->buffer),
 			  (int)response.statusCode,
-			  (struct netw_header const *)response.allHeaderFields);
+			  (__bridge struct netw_header const *)response.allHeaderFields);
 			CFRelease(task->buffer);
 			task->buffer = NULL;
 		}
@@ -140,7 +128,7 @@ is_random_server_error(void)
 			  task->userdata,
 			  task->file,
 			  (int)response.statusCode,
-			  (struct netw_header const *)response.allHeaderFields);
+			  (__bridge struct netw_header const *)response.allHeaderFields);
 		}
 	}
 	else
@@ -158,7 +146,7 @@ is_random_server_error(void)
 	}
 
 	// clean up
-	CFDictionaryRemoveValue(l_netw.task_dict, nstask);
+	[l_netw.task_dict removeObjectForKey:nstask];
 	free(task);
 }
 
@@ -167,7 +155,9 @@ is_random_server_error(void)
           dataTask:(NSURLSessionDataTask *)nstask
     didReceiveData:(NSData *)in_data
 {
-	struct task *task = task_from_dictionary(l_netw.task_dict, nstask);
+	NSValue *value = [l_netw.task_dict objectForKey:nstask];
+	struct task *task = value.pointerValue;
+
 	if (task->file)
 	{
 		ASSERT(!task->buffer);
@@ -190,7 +180,7 @@ netw_init(void)
 {
 	l_netw.delegate = [MyDelegate new];
 
-	l_netw.task_dict = CFDictionaryCreateMutable(NULL, 0, NULL, NULL);
+	l_netw.task_dict = [[NSMutableDictionary alloc] init];
 
 	NSURLSessionConfiguration *config =
 	  [NSURLSessionConfiguration defaultSessionConfiguration];
@@ -208,7 +198,6 @@ netw_deinit(void)
 	[l_netw.session invalidateAndCancel];
 	l_netw.session = nil;
 	l_netw.delegate = nil;
-	CFRelease(l_netw.task_dict);
 	l_netw.task_dict = nil;
 }
 
@@ -280,7 +269,7 @@ netw_request_generic(
 		task->buffer = CFDataCreateMutable(NULL, 0);
 	}
 
-	CFDictionarySetValue(l_netw.task_dict, nstask, task);
+	[l_netw.task_dict setObject:[NSValue valueWithPointer:task] forKey:nstask];
 
 	[nstask resume];
 
@@ -336,7 +325,7 @@ netw_download_to(
 char const *
 netw_get_header(struct netw_header const *in_header, char const *name)
 {
-	NSDictionary *header = (NSDictionary *)in_header;
+	NSDictionary *header = (__bridge NSDictionary *)in_header;
 	NSString *key = [NSString stringWithUTF8String:name];
 	NSString *val = header[key];
 	return val ? [val UTF8String] : NULL;
