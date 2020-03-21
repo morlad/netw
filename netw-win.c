@@ -38,6 +38,8 @@
 // size of download -> file buffer
 #define BUFFERSIZE 4096
 #define USER_AGENT L"minimod/0.1"
+// only enable TLS 1.2 by default
+#define SEC_PROTS (WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2)
 
 struct netw
 {
@@ -174,6 +176,16 @@ netw_init(void)
 		LOG_ERR("HttpOpen");
 		return false;
 	}
+
+	// enable/disable protocols explicitly as Win7 does not
+	// support TLS 1.2 by default, while all support SSL3 and TLS 1.0,
+	// which are already deprecated.
+	unsigned long sec_prots = SEC_PROTS;
+	WinHttpSetOption(
+	  l_netw.session,
+	  WINHTTP_OPTION_SECURE_PROTOCOLS,
+	  &sec_prots,
+	  sizeof sec_prots);
 
 	return true;
 }
