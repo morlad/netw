@@ -146,7 +146,8 @@ netw_init(void)
 	// WINHTTP_ACCESS_TYPE_DEFAULT_PROXY is the only valid choice and
 	// proxy settings need to be applied manually.
 	WINHTTP_CURRENT_USER_IE_PROXY_CONFIG proxy_cfg = { 0 };
-	if (WinHttpGetIEProxyConfigForCurrentUser(&proxy_cfg))
+	WinHttpGetIEProxyConfigForCurrentUser(&proxy_cfg);
+	if (proxy_cfg.lpszProxy)
 	{
 		l_netw.session = WinHttpOpen(
 		  USER_AGENT,
