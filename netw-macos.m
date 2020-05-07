@@ -1,6 +1,22 @@
 #include "netw.h"
 #import <Foundation/Foundation.h>
 
+// You SHOULD set NETW_DELEGATE_NAME to something unique to your project.
+// i.e. "YourProject_netw_Delegate"
+//
+// Objective-C classes are registered by name during runtime.
+// If another library/executable using netw is loaded into the same process
+// space using the same delegate name, only one of those delegates will
+// be used.
+// Which one is unspecified, but it WILL mess things up if they were built
+// from different versions of netw.
+// To prevent this name-collision from happening set the delegate's name
+// to something unique to your project and you will be safe.
+#ifndef NETW_DELEGATE_NAME
+#define NETW_DELEGATE_NAME netw_Delegate
+#pragma GCC warning "NETW_DELEGATE_NAME is not user-defined"
+#endif
+
 #define UNUSED(X) __attribute__((unused)) X
 
 #pragma GCC diagnostic push
@@ -31,17 +47,17 @@
 
 #pragma GCC diagnostic pop
 
-@interface MyDelegate : NSObject <
-                          NSURLSessionDelegate,
-                          NSURLSessionTaskDelegate,
-                          NSURLSessionDataDelegate>
+@interface NETW_DELEGATE_NAME : NSObject <
+                                  NSURLSessionDelegate,
+                                  NSURLSessionTaskDelegate,
+                                  NSURLSessionDataDelegate>
 @end
 
 
 struct netw
 {
 	NSURLSession *session;
-	MyDelegate *delegate;
+	NETW_DELEGATE_NAME *delegate;
 	NSMutableDictionary *task_dict;
 	int error_rate;
 	int min_delay;
@@ -93,7 +109,7 @@ is_random_server_error(void)
 }
 
 
-@implementation MyDelegate
+@implementation NETW_DELEGATE_NAME
 - (void)URLSession:(NSURLSession *)UNUSED(session)
                   task:(NSURLSessionTask *)nstask
   didCompleteWithError:(NSError *)error
@@ -178,7 +194,7 @@ is_random_server_error(void)
 bool
 netw_init(void)
 {
-	l_netw.delegate = [MyDelegate new];
+	l_netw.delegate = [NETW_DELEGATE_NAME new];
 
 	l_netw.task_dict = [[NSMutableDictionary alloc] init];
 
