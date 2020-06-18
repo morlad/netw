@@ -9,6 +9,7 @@ is_unreserved(char x)
 	// clang-format off
 	return (x >= 'A' && x <= 'Z')
 		|| (x >= 'a' && x <= 'z')
+		|| (x >= '0' && x <= '9')
 		|| x == '-'
 		|| x == '_'
 		|| x == '.'
