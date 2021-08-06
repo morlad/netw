@@ -142,7 +142,7 @@ hdr_callback(char *buffer, size_t size, size_t nitems, void *userdata)
 {
 	struct netw_header *hdr = userdata;
 
-	// resize buffer if necessary
+	/* resize buffer if necessary */
 	if (hdr->nkeys == hdr->nreserved)
 	{
 		hdr->nreserved = hdr->nreserved ? 2 * hdr->nreserved : 16;

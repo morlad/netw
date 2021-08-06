@@ -1,5 +1,6 @@
 #include "netw.h"
 #import <Foundation/Foundation.h>
+#import <stdatomic.h>
 
 // You SHOULD set NETW_DELEGATE_NAME to something unique to your project.
 // i.e. "YourProject_netw_Delegate"

@@ -1,7 +1,12 @@
 cmake_minimum_required(VERSION 3.19)
 
 # set the project name and version
-project(netw VERSION 0.0.1 LANGUAGES C)
+set(LANGUAGES "C")
+if (APPLE)
+    #list(APPEND LANGUAGES "OBJC")
+    set(OBJC_STANDARD 90)
+endif ()
+project(netw VERSION 0.0.1 LANGUAGES "${LANGUAGES}")
 string(TOLOWER "${PROJECT_NAME}" PROJECT_LOWER_NAME)
 
 set(CMAKE_C_STANDARD 90)
@@ -17,7 +22,7 @@ set(msvc "$<COMPILE_LANG_AND_ID:C,CXX,MSVC>")
 target_compile_options(
         "${PROJECT_LOWER_NAME}_compiler_flags"
         INTERFACE
-        "$<${gcc_like}:$<BUILD_INTERFACE:-Wshadow;-Wformat=2;-Wall>>"
+        "$<${gcc_like}:$<BUILD_INTERFACE:-Wshadow;-Wformat=2;-Wall;-pedantic>>"
         "$<${msvc}:$<BUILD_INTERFACE:-W3;-WX;-Zi;-permissive->>"
 )
 
@@ -27,7 +32,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}")
 
-option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
+option(BUILD_SHARED_LIBS "Build using shared libraries" OFF)
 
 if(APPLE)
     set(CMAKE_INSTALL_RPATH "@executable_path/../lib")
@@ -41,7 +46,7 @@ configure_file(
         "${PROJECT_NAME}Config.h"
 )
 
-set(original_deps "src" "src/example")
+set(original_deps "netw" "netw/example")
 foreach (_lib ${original_deps})
     add_subdirectory("${_lib}")
     message(STATUS "Built ${_lib}")

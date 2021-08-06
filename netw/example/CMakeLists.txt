@@ -6,14 +6,8 @@ source_group("Source Files" FILES "${Source_Files}")
 
 add_executable("${EXEC_NAME}" "${Source_Files}")
 
-target_include_directories(
-        "${EXEC_NAME}"
-        INTERFACE
-        "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>"
-        "$<INSTALL_INTERFACE:include>"
-)
-
 target_link_libraries("${EXEC_NAME}" PUBLIC "${PROJECT_LOWER_NAME}_compiler_flags")
+target_link_libraries("${EXEC_NAME}" PUBLIC "netw")
 
 set_target_properties(
         "${EXEC_NAME}"

@@ -55,7 +55,7 @@ ifeq ($(os),linux)
 example: LDLIBS += -lpthread -lcurl
 endif
 
-example: src/example/example.c $(srcs)
+example: netw $(srcs)
 
 format:
 	$(Q)clang-format -i *.c *.m *.h
