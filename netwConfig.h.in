@@ -1,0 +1,9 @@
+#ifndef NETW_CONFIG_H
+#define NETW_CONFIG_H
+
+/* the configured options and settings for netw */
+#define NETW_VERSION_MAJOR @netw_VERSION_MAJOR@
+#define NETW_VERSION_MINOR @netw_VERSION_MINOR@
+#define NETW_VERSION_PATCH @netw_VERSION_PATCH@
+
+#endif /* NETW_CONFIG_H */

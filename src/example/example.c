@@ -1,4 +1,4 @@
-#include "netw.h"
+#include "../netw.h"
 
 static void
 on_recv(
