@@ -44,4 +44,6 @@ main(void)
 
 	/* clean-up */
 	netw_deinit();
+
+	return EXIT_SUCCESS;
 }

@@ -145,7 +145,7 @@ hdr_callback(char *buffer, size_t size, size_t nitems, void *userdata)
 		  realloc(hdr->values, sizeof *hdr->values * hdr->nreserved);
 	}
 
-	// check if line contains a colon
+	/* check if line contains a colon */
 	colon = memchr(buffer, ':', size * nitems);
 	if (colon)
 	{
@@ -154,12 +154,12 @@ hdr_callback(char *buffer, size_t size, size_t nitems, void *userdata)
 		hdr->keys[hdr->nkeys][colon - buffer] = '\0';
 
 		hdr->values[hdr->nkeys] = hdr->keys[hdr->nkeys] + (colon - buffer) + 1;
-		// trim leading whitespace
+		/* trim leading whitespace */
 		while (isspace(*hdr->values[hdr->nkeys]))
 		{
 			hdr->values[hdr->nkeys] += 1;
 		}
-		// trim trailing whitespace
+		/* trim trailing whitespace */
 		ptr = hdr->keys[hdr->nkeys] + size * nitems - 1;
 		while (isspace(*ptr))
 		{
@@ -247,7 +247,7 @@ build_header_list(char const *const headers[])
 		char *line = malloc(len_field + 2 + len_value + 1);
 		memcpy(line, headers[i], len_field);
 		memcpy(line + len_field, ": ", 2);
-		// (len_value + 1) to copy terminating NUL
+		/* (len_value + 1) to copy terminating NUL */
 		memcpy(line + len_field + 2, headers[i + 1], len_value + 1);
 
 		list = curl_slist_append(list, line);

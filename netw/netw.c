@@ -31,7 +31,7 @@ netw_percent_encode(char const *input, size_t len, size_t *out_len)
 			nlen += is_unreserved(input[i]) ? 1 : 3;
 		}
 	}
-	output = malloc(nlen + 1); // NUL terminate
+	output = malloc(nlen + 1); /* NUL terminate */
 	o = output;
 
 	{

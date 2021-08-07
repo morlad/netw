@@ -16,10 +16,10 @@
 
 #define LOG_ERR(X) LOGE(X " failed %lu", GetLastError())
 
-// size of download -> file buffer
+/* size of download -> file buffer */
 #define BUFFERSIZE 4096
 #define USER_AGENT L"minimod/0.1"
-// only enable TLS 1.2 by default
+/* only enable TLS 1.2 by default */
 #define SEC_PROTS (WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2)
 
 struct netw
@@ -73,10 +73,10 @@ utf8_from_utf16(wchar_t const *in_utf16, size_t *out_chars)
 	{
 		return NULL;
 	}
-	// return value is the number of bytes required to hold the string,
-	// including the terminating NUL iff NUL was part of the input.
+	/* return value is the number of bytes required to hold the string,
+	 * including the terminating NUL iff NUL was part of the input. */
 	r = WideCharToMultiByte(CP_UTF8, 0, in_utf16, -1, NULL, 0, NULL, NULL);
-	// at least a NUL character should be written
+	/* at least a NUL character should be written */
 	if (r < 1)
 	{
 		return NULL;
@@ -106,10 +106,10 @@ utf16_from_utf8(char const *in_utf8, size_t *out_chars)
 	{
 		return NULL;
 	}
-	// return value is the number of CHARS required to hold the string.
-	// including the terminating NUL iff NUL was part of the input.
+	/* return value is the number of CHARS required to hold the string.
+	 * including the terminating NUL iff NUL was part of the input. */
 	r = MultiByteToWideChar(CP_UTF8, 0, in_utf8, -1, NULL, 0);
-	// at least a NUL character should be written
+	/* at least a NUL character should be written */
 	if (r < 1)
 	{
 		return NULL;
@@ -128,11 +128,13 @@ bool
 netw_init(void)
 {
 	unsigned long sec_prots;
-	// Windows 8.1 and above supports WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY
-	// to use the system's proxy settings.
-	// But since Windows 7 should still be supported
-	// WINHTTP_ACCESS_TYPE_DEFAULT_PROXY is the only valid choice and
-	// proxy settings need to be applied manually.
+	/*
+	 * Windows 8.1 and above supports WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY
+	 * to use the system's proxy settings.
+	 * But since Windows 7 should still be supported
+	 * WINHTTP_ACCESS_TYPE_DEFAULT_PROXY is the only valid choice and
+	 * proxy settings need to be applied manually.
+	 */
 	WINHTTP_CURRENT_USER_IE_PROXY_CONFIG proxy_cfg = { 0 };
 	WinHttpGetIEProxyConfigForCurrentUser(&proxy_cfg);
 	if (proxy_cfg.lpszProxy)
@@ -163,9 +165,11 @@ netw_init(void)
 		return false;
 	}
 
-	// enable/disable protocols explicitly as Win7 does not
-	// support TLS 1.2 by default, while all support SSL3 and TLS 1.0,
-	// which are already deprecated.
+	/*
+	 * enable/disable protocols explicitly as Win7 does not
+	 * support TLS 1.2 by default, while all support SSL3 and TLS 1.0,
+	 * which are already deprecated.
+	 * */
 	sec_prots = SEC_PROTS;
 	WinHttpSetOption(
 	  l_netw.session,
@@ -201,7 +205,7 @@ combine_headers(char const *const in_headers[], size_t *out_len)
 	hdrptr = headers;
 	while (*h)
 	{
-		// key
+		/* key */
 		size_t l = strlen(*h);
 		memcpy(hdrptr, *h, l);
 		hdrptr += l;
@@ -209,7 +213,7 @@ combine_headers(char const *const in_headers[], size_t *out_len)
 		*(hdrptr++) = ' ';
 		++h;
 
-		// value
+		/* value */
 		l = strlen(*h);
 		memcpy(hdrptr, *h, l);
 		hdrptr += l;
@@ -218,7 +222,7 @@ combine_headers(char const *const in_headers[], size_t *out_len)
 		++h;
 	}
 
-	// NUL terminate
+	/* NUL terminate */
 	*hdrptr = '\0';
 
 	if (out_len)
@@ -285,7 +289,7 @@ netw_header_from_raw_header(struct netw_header *hdr, char *buffer)
 	{
 		char *end_of_line, *colon;
 
-		// resize buffer if necessary
+		/* resize buffer if necessary */
 		if (hdr->nkeys == hdr->nreserved)
 		{
 			hdr->nreserved = hdr->nreserved ? 2 * hdr->nreserved : 16;
@@ -295,7 +299,7 @@ netw_header_from_raw_header(struct netw_header *hdr, char *buffer)
 			  realloc(hdr->values, sizeof *hdr->values * hdr->nreserved);
 		}
 
-		// check if line contains a colon
+		/* check if line contains a colon */
 		end_of_line = strchr(ptr, '\r');
 		assert(end_of_line);
 		colon = memchr(ptr, ':', (size_t)(end_of_line - ptr));
@@ -304,18 +308,18 @@ netw_header_from_raw_header(struct netw_header *hdr, char *buffer)
 			char *ptr_end;
 			hdr->keys[hdr->nkeys] = ptr;
 
-			// find end of header-line, store it and advance ptr to next line
+			/* find end of header-line, store it and advance ptr to next line */
 			ptr_end = end_of_line;
 
 			*colon = '\0';
 
 			hdr->values[hdr->nkeys] = colon + 1;
-			// trim leading whitespace
+			/* trim leading whitespace */
 			while (isspace(*hdr->values[hdr->nkeys]))
 			{
 				hdr->values[hdr->nkeys] += 1;
 			}
-			// trim trailing whitespace
+			/* trim trailing whitespace */
 			while (isspace(*ptr_end))
 			{
 				*ptr_end = '\0';
@@ -413,7 +417,7 @@ __RPC_CALLEE task_handler(LPVOID context)
 	}
 	LOG("status code of response: %lu", status_code);
 
-	// read headers
+	/* read headers */
 	DWORD header_bytes;
 	ok = WinHttpQueryHeaders(
 	  hrequest,
@@ -502,20 +506,20 @@ __RPC_CALLEE task_handler(LPVOID context)
 		  .request(task->udata, buffer, bytes, (int)status_code, &hdr);
 	}
 
-	// free local data
+	/* free local data */
 	WinHttpCloseHandle(hrequest);
 	WinHttpCloseHandle(hconnection);
 
 	free_netw_header(&hdr);
 	free(buffer);
 
-	// free task data
+	/* free task data */
 	free(task->host);
 	free(task->path);
 	free(task->header);
 	free(task->payload);
 
-	// free actual task
+	/* free actual task */
 	free(task);
 
 	return 0;
@@ -536,13 +540,13 @@ err_early:
 		task->callback.request(task->udata, NULL, 0, -1, NULL);
 	}
 
-	// free task data
+	/* free task data */
 	free(task->host);
 	free(task->path);
 	free(task->header);
 	free(task->payload);
 
-	// free actual task
+	/* free actual task */
 	free(task);
 
 	return 1;
@@ -584,7 +588,7 @@ netw_request(
 		task->payload_bytes = nbody_bytes;
 	}
 
-	// convert/extract URI information
+	/* convert/extract URI information */
 	urilen = 0;
 	uri = utf16_from_utf8(in_uri, &urilen);
 	URL_COMPONENTS url_components = {
@@ -602,7 +606,7 @@ netw_request(
 
 	free(uri);
 
-	// combine/convert headers
+	/* combine/convert headers */
 	if (in_headers)
 	{
 		char *header = combine_headers(in_headers, NULL);
@@ -659,7 +663,7 @@ netw_download_to(
 		task->payload_bytes = in_nbytes;
 	}
 
-	// convert/extract URI information
+	/* convert/extract URI information */
 	urilen = 0;
 	uri = utf16_from_utf8(in_uri, &urilen);
 	URL_COMPONENTS url_components = {
@@ -677,7 +681,7 @@ netw_download_to(
 
 	free(uri);
 
-	// combine/convert headers
+	/* combine/convert headers */
 	if (in_headers)
 	{
 		char *header = combine_headers(in_headers, NULL);
