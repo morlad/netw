@@ -1,13 +1,11 @@
 #include "netw.h"
 
-#include <Windows.h>
 #include <stdio.h>
 #include <string.h>
-#include <winhttp.h>
+#include <assert.h>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
-#pragma GCC diagnostic ignored "-Wunused-macros"
+#include <Windows.h>
+#include <winhttp.h>
 
 #ifdef MINIMOD_LOG_ENABLE
 #define LOG(FMT, ...) printf("[netw] " FMT "\n", ##__VA_ARGS__)
@@ -16,29 +14,12 @@
 #endif
 #define LOGE(FMT, ...) fprintf(stderr, "[netw] " FMT "\n", ##__VA_ARGS__)
 
-#define ASSERT(in_condition)                      \
-	do                                            \
-	{                                             \
-		if (__builtin_expect(!(in_condition), 0)) \
-		{                                         \
-			LOGE(                                 \
-			  "[assertion] %s:%i: '%s'",          \
-			  __FILE__,                           \
-			  __LINE__,                           \
-			  #in_condition);                     \
-			__asm__ volatile("int $0x03");        \
-			__builtin_unreachable();              \
-		}                                         \
-	} while (__LINE__ == -1)
-
-#pragma GCC diagnostic pop
-
 #define LOG_ERR(X) LOGE(X " failed %lu", GetLastError())
 
-// size of download -> file buffer
+/* size of download -> file buffer */
 #define BUFFERSIZE 4096
 #define USER_AGENT L"minimod/0.1"
-// only enable TLS 1.2 by default
+/* only enable TLS 1.2 by default */
 #define SEC_PROTS (WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2)
 
 struct netw
@@ -86,19 +67,21 @@ is_random_server_error(void)
 static char *
 utf8_from_utf16(wchar_t const *in_utf16, size_t *out_chars)
 {
+	int r;
+	char *utf8;
 	if (!in_utf16)
 	{
 		return NULL;
 	}
-	// return value is the number of bytes required to hold the string,
-	// including the terminating NUL iff NUL was part of the input.
-	int r = WideCharToMultiByte(CP_UTF8, 0, in_utf16, -1, NULL, 0, NULL, NULL);
-	// at least a NUL character should be written
+	/* return value is the number of bytes required to hold the string,
+	 * including the terminating NUL iff NUL was part of the input. */
+	r = WideCharToMultiByte(CP_UTF8, 0, in_utf16, -1, NULL, 0, NULL, NULL);
+	/* at least a NUL character should be written */
 	if (r < 1)
 	{
 		return NULL;
 	}
-	char *utf8 = malloc((size_t)r);
+	utf8 = malloc((size_t)r);
 	r = WideCharToMultiByte(CP_UTF8, 0, in_utf16, -1, utf8, r, NULL, NULL);
 	if (out_chars)
 	{
@@ -117,19 +100,21 @@ utf8_from_utf16(wchar_t const *in_utf16, size_t *out_chars)
 static wchar_t *
 utf16_from_utf8(char const *in_utf8, size_t *out_chars)
 {
+	int r;
+	wchar_t *utf16;
 	if (!in_utf8)
 	{
 		return NULL;
 	}
-	// return value is the number of CHARS required to hold the string.
-	// including the terminating NUL iff NUL was part of the input.
-	int r = MultiByteToWideChar(CP_UTF8, 0, in_utf8, -1, NULL, 0);
-	// at least a NUL character should be written
+	/* return value is the number of CHARS required to hold the string.
+	 * including the terminating NUL iff NUL was part of the input. */
+	r = MultiByteToWideChar(CP_UTF8, 0, in_utf8, -1, NULL, 0);
+	/* at least a NUL character should be written */
 	if (r < 1)
 	{
 		return NULL;
 	}
-	wchar_t *utf16 = malloc((size_t)r * sizeof *utf16);
+	utf16 = malloc((size_t)r * sizeof *utf16);
 	r = MultiByteToWideChar(CP_UTF8, 0, in_utf8, -1, utf16, r);
 	if (out_chars)
 	{
@@ -142,11 +127,14 @@ utf16_from_utf8(char const *in_utf8, size_t *out_chars)
 bool
 netw_init(void)
 {
-	// Windows 8.1 and above supports WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY
-	// to use the system's proxy settings.
-	// But since Windows 7 should still be supported
-	// WINHTTP_ACCESS_TYPE_DEFAULT_PROXY is the only valid choice and
-	// proxy settings need to be applied manually.
+	unsigned long sec_prots;
+	/*
+	 * Windows 8.1 and above supports WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY
+	 * to use the system's proxy settings.
+	 * But since Windows 7 should still be supported
+	 * WINHTTP_ACCESS_TYPE_DEFAULT_PROXY is the only valid choice and
+	 * proxy settings need to be applied manually.
+	 */
 	WINHTTP_CURRENT_USER_IE_PROXY_CONFIG proxy_cfg = { 0 };
 	WinHttpGetIEProxyConfigForCurrentUser(&proxy_cfg);
 	if (proxy_cfg.lpszProxy)
@@ -177,10 +165,12 @@ netw_init(void)
 		return false;
 	}
 
-	// enable/disable protocols explicitly as Win7 does not
-	// support TLS 1.2 by default, while all support SSL3 and TLS 1.0,
-	// which are already deprecated.
-	unsigned long sec_prots = SEC_PROTS;
+	/*
+	 * enable/disable protocols explicitly as Win7 does not
+	 * support TLS 1.2 by default, while all support SSL3 and TLS 1.0,
+	 * which are already deprecated.
+	 * */
+	sec_prots = SEC_PROTS;
 	WinHttpSetOption(
 	  l_netw.session,
 	  WINHTTP_OPTION_SECURE_PROTOCOLS,
@@ -203,18 +193,19 @@ combine_headers(char const *const in_headers[], size_t *out_len)
 {
 	size_t len_headers = 0;
 	char const *const *h = in_headers;
+	char *headers, *hdrptr;
 	while (*h)
 	{
 		len_headers += strlen(*(h++));
 		len_headers += 2; /* ": " or "\r\n" */
 	}
-	char *headers = malloc(len_headers + 1 /*NUL*/);
+	headers = malloc(len_headers + 1 /*NUL*/);
 
 	h = in_headers;
-	char *hdrptr = headers;
+	hdrptr = headers;
 	while (*h)
 	{
-		// key
+		/* key */
 		size_t l = strlen(*h);
 		memcpy(hdrptr, *h, l);
 		hdrptr += l;
@@ -222,7 +213,7 @@ combine_headers(char const *const in_headers[], size_t *out_len)
 		*(hdrptr++) = ' ';
 		++h;
 
-		// value
+		/* value */
 		l = strlen(*h);
 		memcpy(hdrptr, *h, l);
 		hdrptr += l;
@@ -231,7 +222,7 @@ combine_headers(char const *const in_headers[], size_t *out_len)
 		++h;
 	}
 
-	// NUL terminate
+	/* NUL terminate */
 	*hdrptr = '\0';
 
 	if (out_len)
@@ -296,7 +287,9 @@ netw_header_from_raw_header(struct netw_header *hdr, char *buffer)
 	char *ptr = buffer;
 	while (*ptr)
 	{
-		// resize buffer if necessary
+		char *end_of_line, *colon;
+
+		/* resize buffer if necessary */
 		if (hdr->nkeys == hdr->nreserved)
 		{
 			hdr->nreserved = hdr->nreserved ? 2 * hdr->nreserved : 16;
@@ -306,26 +299,27 @@ netw_header_from_raw_header(struct netw_header *hdr, char *buffer)
 			  realloc(hdr->values, sizeof *hdr->values * hdr->nreserved);
 		}
 
-		// check if line contains a colon
-		char *end_of_line = strchr(ptr, '\r');
-		ASSERT(end_of_line);
-		char *colon = memchr(ptr, ':', (size_t)(end_of_line - ptr));
+		/* check if line contains a colon */
+		end_of_line = strchr(ptr, '\r');
+		assert(end_of_line);
+		colon = memchr(ptr, ':', (size_t)(end_of_line - ptr));
 		if (colon)
 		{
+			char *ptr_end;
 			hdr->keys[hdr->nkeys] = ptr;
 
-			// find end of header-line, store it and advance ptr to next line
-			char *ptr_end = end_of_line;
+			/* find end of header-line, store it and advance ptr to next line */
+			ptr_end = end_of_line;
 
 			*colon = '\0';
 
 			hdr->values[hdr->nkeys] = colon + 1;
-			// trim leading whitespace
+			/* trim leading whitespace */
 			while (isspace(*hdr->values[hdr->nkeys]))
 			{
 				hdr->values[hdr->nkeys] += 1;
 			}
-			// trim trailing whitespace
+			/* trim trailing whitespace */
 			while (isspace(*ptr_end))
 			{
 				*ptr_end = '\0';
@@ -357,7 +351,7 @@ free_netw_header(struct netw_header *hdr)
 
 
 static DWORD
-task_handler(LPVOID context)
+__RPC_CALLEE task_handler(LPVOID context)
 {
 	struct task *task = context;
 
@@ -423,7 +417,7 @@ task_handler(LPVOID context)
 	}
 	LOG("status code of response: %lu", status_code);
 
-	// read headers
+	/* read headers */
 	DWORD header_bytes;
 	ok = WinHttpQueryHeaders(
 	  hrequest,
@@ -432,7 +426,7 @@ task_handler(LPVOID context)
 	  WINHTTP_NO_OUTPUT_BUFFER,
 	  &header_bytes,
 	  WINHTTP_NO_HEADER_INDEX);
-	ASSERT(ok == FALSE);
+	assert(ok == FALSE);
 	LOG("header-bytes: %lu", header_bytes);
 
 	LPWSTR header_buffer = malloc(header_bytes);
@@ -443,7 +437,7 @@ task_handler(LPVOID context)
 	  header_buffer,
 	  &header_bytes,
 	  WINHTTP_NO_HEADER_INDEX);
-	ASSERT(ok == TRUE);
+	assert(ok == TRUE);
 
 	char *header_utf8 = utf8_from_utf16(header_buffer, NULL);
 	free(header_buffer);
@@ -467,13 +461,13 @@ task_handler(LPVOID context)
 			}
 			if (avail_bytes > 0)
 			{
+				size_t nitems;
 				DWORD m = avail_bytes <= BUFFERSIZE ? avail_bytes : BUFFERSIZE;
 				DWORD actual_bytes_read = 0;
 				WinHttpReadData(hrequest, buffer, m, &actual_bytes_read);
 				LOG("Read %lu from %lu bytes", actual_bytes_read, avail_bytes);
-				size_t nitems =
-				  fwrite(buffer, actual_bytes_read, 1, task->file);
-				ASSERT(nitems == 1);
+				nitems = fwrite(buffer, actual_bytes_read, 1, task->file);
+				assert(nitems == 1);
 			}
 		} while (avail_bytes > 0);
 
@@ -512,20 +506,20 @@ task_handler(LPVOID context)
 		  .request(task->udata, buffer, bytes, (int)status_code, &hdr);
 	}
 
-	// free local data
+	/* free local data */
 	WinHttpCloseHandle(hrequest);
 	WinHttpCloseHandle(hconnection);
 
 	free_netw_header(&hdr);
 	free(buffer);
 
-	// free task data
+	/* free task data */
 	free(task->host);
 	free(task->path);
 	free(task->header);
 	free(task->payload);
 
-	// free actual task
+	/* free actual task */
 	free(task);
 
 	return 0;
@@ -546,13 +540,13 @@ err_early:
 		task->callback.request(task->udata, NULL, 0, -1, NULL);
 	}
 
-	// free task data
+	/* free task data */
 	free(task->host);
 	free(task->path);
 	free(task->header);
 	free(task->payload);
 
-	// free actual task
+	/* free actual task */
 	free(task);
 
 	return 1;
@@ -572,6 +566,9 @@ netw_request(
   netw_request_callback in_callback,
   void *in_userdata)
 {
+	struct task *task;
+	size_t urilen;
+	wchar_t *uri;
 	if (l_netw.error_rate > 0 && is_random_server_error())
 	{
 		LOG("Failing request: %s", in_uri);
@@ -581,7 +578,7 @@ netw_request(
 
 	LOG("request: %s", in_uri);
 
-	struct task *task = calloc(sizeof *task, 1);
+	task = calloc(sizeof *task, 1);
 	task->callback.request = in_callback;
 	task->udata = in_userdata;
 	task->verb = l_verbs[in_verb];
@@ -591,9 +588,9 @@ netw_request(
 		task->payload_bytes = nbody_bytes;
 	}
 
-	// convert/extract URI information
-	size_t urilen = 0;
-	wchar_t *uri = utf16_from_utf8(in_uri, &urilen);
+	/* convert/extract URI information */
+	urilen = 0;
+	uri = utf16_from_utf8(in_uri, &urilen);
 	URL_COMPONENTS url_components = {
 		.dwStructSize = sizeof url_components,
 		.dwHostNameLength = (DWORD)-1,
@@ -609,7 +606,7 @@ netw_request(
 
 	free(uri);
 
-	// combine/convert headers
+	/* combine/convert headers */
 	if (in_headers)
 	{
 		char *header = combine_headers(in_headers, NULL);
@@ -617,7 +614,8 @@ netw_request(
 		free(header);
 	}
 
-	HANDLE h = CreateThread(NULL, 0, task_handler, task, 0, NULL);
+	HANDLE h = CreateThread(NULL, 0,
+	                        task_handler, task, 0, NULL);
 	if (h)
 	{
 		CloseHandle(h);
@@ -642,7 +640,10 @@ netw_download_to(
   netw_download_callback in_callback,
   void *in_userdata)
 {
-	ASSERT(fout);
+	struct task *task;
+	size_t urilen;
+	wchar_t *uri;
+	assert(fout);
 	if (l_netw.error_rate > 0 && is_random_server_error())
 	{
 		LOG("Failing request: %s", in_uri);
@@ -651,7 +652,7 @@ netw_download_to(
 	}
 	LOG("download_request: %s", in_uri);
 
-	struct task *task = calloc(sizeof *task, 1);
+	task = calloc(sizeof *task, 1);
 	task->callback.download = in_callback;
 	task->udata = in_userdata;
 	task->verb = l_verbs[in_verb];
@@ -662,9 +663,9 @@ netw_download_to(
 		task->payload_bytes = in_nbytes;
 	}
 
-	// convert/extract URI information
-	size_t urilen = 0;
-	wchar_t *uri = utf16_from_utf8(in_uri, &urilen);
+	/* convert/extract URI information */
+	urilen = 0;
+	uri = utf16_from_utf8(in_uri, &urilen);
 	URL_COMPONENTS url_components = {
 		.dwStructSize = sizeof url_components,
 		.dwHostNameLength = (DWORD)-1,
@@ -680,7 +681,7 @@ netw_download_to(
 
 	free(uri);
 
-	// combine/convert headers
+	/* combine/convert headers */
 	if (in_headers)
 	{
 		char *header = combine_headers(in_headers, NULL);
@@ -688,7 +689,8 @@ netw_download_to(
 		free(header);
 	}
 
-	HANDLE h = CreateThread(NULL, 0, task_handler, task, 0, NULL);
+	HANDLE h = CreateThread(NULL, 0, task_handler,
+	                        task, 0, NULL);
 	if (h)
 	{
 		CloseHandle(h);
@@ -705,7 +707,7 @@ netw_download_to(
 void
 netw_set_error_rate(int in_percentage)
 {
-	ASSERT(in_percentage >= 0 && in_percentage <= 100);
+	assert(in_percentage >= 0 && in_percentage <= 100);
 	l_netw.error_rate = in_percentage;
 }
 
@@ -713,8 +715,8 @@ netw_set_error_rate(int in_percentage)
 void
 netw_set_delay(int in_min, int in_max)
 {
-	ASSERT(in_min >= 0);
-	ASSERT(in_max >= in_min);
+	assert(in_min >= 0);
+	assert(in_max >= in_min);
 	l_netw.min_delay = in_min;
 	l_netw.max_delay = in_max;
 }
@@ -723,7 +725,8 @@ netw_set_delay(int in_min, int in_max)
 char const *
 netw_get_header(struct netw_header const *in_hdr, char const *in_key)
 {
-	for (size_t i = 0; i < in_hdr->nkeys; ++i)
+	size_t i;
+	for (i = 0; i < in_hdr->nkeys; ++i)
 	{
 		if (_stricmp(in_key, in_hdr->keys[i]) == 0)
 		{

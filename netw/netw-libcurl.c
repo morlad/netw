@@ -8,12 +8,6 @@
 
 #include <curl/curl.h>
 
-#pragma GCC diagnostic push
-#ifdef __clang__
-#pragma GCC diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
-#endif
-#pragma GCC diagnostic ignored "-Wunused-macros"
-
 #ifdef MINIMOD_LOG_ENABLE
 #define LOG(FMT, ...) printf("[netw] " FMT "\n", ##__VA_ARGS__)
 #else
@@ -35,8 +29,6 @@
 			__builtin_unreachable();              \
 		}                                         \
 	} while (__LINE__ == -1)
-
-#pragma GCC diagnostic pop
 
 struct netw
 {
@@ -141,8 +133,9 @@ static size_t
 hdr_callback(char *buffer, size_t size, size_t nitems, void *userdata)
 {
 	struct netw_header *hdr = userdata;
+	char *colon;
 
-	// resize buffer if necessary
+	/* resize buffer if necessary */
 	if (hdr->nkeys == hdr->nreserved)
 	{
 		hdr->nreserved = hdr->nreserved ? 2 * hdr->nreserved : 16;
@@ -152,21 +145,22 @@ hdr_callback(char *buffer, size_t size, size_t nitems, void *userdata)
 		  realloc(hdr->values, sizeof *hdr->values * hdr->nreserved);
 	}
 
-	// check if line contains a colon
-	char *colon = memchr(buffer, ':', size * nitems);
+	/* check if line contains a colon */
+	colon = memchr(buffer, ':', size * nitems);
 	if (colon)
 	{
+	    char *ptr;
 		hdr->keys[hdr->nkeys] = memdup(buffer, size * nitems);
 		hdr->keys[hdr->nkeys][colon - buffer] = '\0';
 
 		hdr->values[hdr->nkeys] = hdr->keys[hdr->nkeys] + (colon - buffer) + 1;
-		// trim leading whitespace
+		/* trim leading whitespace */
 		while (isspace(*hdr->values[hdr->nkeys]))
 		{
 			hdr->values[hdr->nkeys] += 1;
 		}
-		// trim trailing whitespace
-		char *ptr = hdr->keys[hdr->nkeys] + size * nitems - 1;
+		/* trim trailing whitespace */
+		ptr = hdr->keys[hdr->nkeys] + size * nitems - 1;
 		while (isspace(*ptr))
 		{
 			*ptr = '\0';
@@ -183,7 +177,8 @@ hdr_callback(char *buffer, size_t size, size_t nitems, void *userdata)
 static void
 free_netw_header(struct netw_header *hdr)
 {
-	for (size_t i = 0; i < hdr->nkeys; ++i)
+    size_t i;
+	for (i = 0; i < hdr->nkeys; ++i)
 	{
 		free(hdr->keys[i]);
 	}
@@ -196,12 +191,13 @@ static void *
 task_handler(void *in_context)
 {
 	struct task *task = in_context;
+	struct netw_header hdr = { 0 };
+	long status_code;
 
 	curl_easy_setopt(task->curl, CURLOPT_VERBOSE, 0);
 
 	curl_easy_setopt(task->curl, CURLOPT_FOLLOWLOCATION, 1);
 
-	struct netw_header hdr = { 0 };
 	curl_easy_setopt(task->curl, CURLOPT_HEADERDATA, &hdr);
 	curl_easy_setopt(task->curl, CURLOPT_HEADERFUNCTION, hdr_callback);
 
@@ -209,10 +205,8 @@ task_handler(void *in_context)
 
 	curl_slist_free_all(task->header_list);
 
-	long status_code;
 	curl_easy_getinfo(task->curl, CURLINFO_RESPONSE_CODE, &status_code);
 	LOG("status_code: %li", status_code);
-
 
 	random_delay();
 	if (task->file)
@@ -245,14 +239,15 @@ static struct curl_slist *
 build_header_list(char const *const headers[])
 {
 	struct curl_slist *list = NULL;
-	for (size_t i = 0; headers[i]; i += 2)
+	size_t i;
+	for (i = 0; headers[i]; i += 2)
 	{
 		size_t len_field = strlen(headers[i]);
 		size_t len_value = strlen(headers[i + 1]);
 		char *line = malloc(len_field + 2 + len_value + 1);
 		memcpy(line, headers[i], len_field);
 		memcpy(line + len_field, ": ", 2);
-		// (len_value + 1) to copy terminating NUL
+		/* (len_value + 1) to copy terminating NUL */
 		memcpy(line + len_field + 2, headers[i + 1], len_value + 1);
 
 		list = curl_slist_append(list, line);
@@ -272,6 +267,10 @@ netw_request(
   netw_request_callback in_callback,
   void *in_userdata)
 {
+    struct task *task;
+    curl_off_t nbody_bytes;
+    pthread_t tid;
+    int err;
 	if (l_netw.error_rate > 0 && is_random_server_error())
 	{
 		LOG("Failing request: %s", in_uri);
@@ -279,14 +278,14 @@ netw_request(
 		return true;
 	}
 
-	struct task *task = calloc(1, sizeof *task);
+	task = calloc(1, sizeof *task);
 
 	task->callback.request = in_callback;
 	task->udata = in_userdata;
 
 	task->curl = curl_easy_init();
 
-	curl_off_t nbody_bytes = (curl_off_t)in_nbytes;
+	nbody_bytes = (curl_off_t)in_nbytes;
 	switch (in_verb)
 	{
 	case NETW_VERB_GET:
@@ -323,9 +322,8 @@ netw_request(
 	curl_easy_setopt(task->curl, CURLOPT_WRITEFUNCTION, on_curl_write_memory);
 	curl_easy_setopt(task->curl, CURLOPT_WRITEDATA, task);
 
-	pthread_t tid;
-	int err = pthread_create(&tid, NULL, task_handler, task);
-	return (err == 0);
+	err = pthread_create(&tid, NULL, task_handler, task);
+	return err == 0;
 }
 
 
@@ -340,6 +338,10 @@ netw_download_to(
   netw_download_callback in_callback,
   void *in_userdata)
 {
+    struct task *task;
+    curl_off_t nbody_bytes;
+    pthread_t tid;
+    int err;
 	ASSERT(fout);
 	if (l_netw.error_rate > 0 && is_random_server_error())
 	{
@@ -348,7 +350,7 @@ netw_download_to(
 		return true;
 	}
 
-	struct task *task = calloc(1, sizeof *task);
+	task = calloc(1, sizeof *task);
 
 	task->file = fout;
 
@@ -357,7 +359,7 @@ netw_download_to(
 
 	task->curl = curl_easy_init();
 
-	curl_off_t nbody_bytes = (curl_off_t)in_nbytes;
+	nbody_bytes = (curl_off_t)in_nbytes;
 	switch (in_verb)
 	{
 	case NETW_VERB_GET:
@@ -393,9 +395,8 @@ netw_download_to(
 
 	curl_easy_setopt(task->curl, CURLOPT_WRITEDATA, task->file);
 
-	pthread_t tid;
-	int err = pthread_create(&tid, NULL, task_handler, task);
-	return (err == 0);
+	err = pthread_create(&tid, NULL, task_handler, task);
+	return err == 0;
 }
 
 
@@ -420,7 +421,8 @@ netw_set_delay(int in_min, int in_max)
 char const *
 netw_get_header(struct netw_header const *in_hdr, char const *in_key)
 {
-	for (size_t i = 0; i < in_hdr->nkeys; ++i)
+    size_t i;
+	for (i = 0; i < in_hdr->nkeys; ++i)
 	{
 		if (strcasecmp(in_key, in_hdr->keys[i]) == 0)
 		{

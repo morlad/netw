@@ -1,7 +1,9 @@
-// vi: filetype=c
-#pragma once
+/* vi: filetype=c */
+
 #ifndef MINIMOD_NETW_H_INCLUDED
 #define MINIMOD_NETW_H_INCLUDED
+#include "netw_export.h"
+#include "netwConfig.h"
 
 /* Title: netw
  *
@@ -26,16 +28,22 @@
  * needs to be called.
  */
 
+#ifdef __cplusplus
+#include <cstddef>
+#include <cstdint>
+#include <cstdio>
+#include <cstdbool>
+extern "C" {
+#else
 #include <stddef.h>
-#ifndef __cplusplus
-#include <stdbool.h>
-#endif
 #include <stdint.h>
 #include <stdio.h>
-
-#ifdef __cplusplus
-extern "C" {
+#if __STDC_VERSION__ >= 199901L
+#include <stdbool.h>
+#else
+#include "stdbool.h"
 #endif
+#endif /* __cplusplus */
 
 /* Section: API */
 
@@ -53,10 +61,10 @@ enum netw_verb
 	NETW_VERB_GET,
 	NETW_VERB_POST,
 	NETW_VERB_PUT,
-	NETW_VERB_DELETE,
+	NETW_VERB_DELETE
 };
 
-struct netw_header;
+struct NETW_EXPORT_H netw_header;
 
 /* Callback: netw_request_callback()
  *
@@ -70,7 +78,7 @@ struct netw_header;
  *	in_error - HTTP status code of the response
  *	in_header - To be used in conjunction with <netw_get_header()>
  */
-typedef void (*netw_request_callback)(
+typedef void NETW_EXPORT_H (*netw_request_callback)(
   void *in_userdata,
   void const *in_data,
   size_t in_bytes,
@@ -87,7 +95,7 @@ typedef void (*netw_request_callback)(
  *	in_error - HTTP status code of the response
  *	in_header - To be used in conjunction with <netw_get_header()>
  */
-typedef void (*netw_download_callback)(
+typedef void NETW_EXPORT_H (*netw_download_callback)(
   void *in_userdata,
   FILE *in_file,
   int in_error,
@@ -101,14 +109,14 @@ typedef void (*netw_download_callback)(
  * Note:
  *	Do not forget to call <netw_deinit()> when you are done.
  */
-bool
+bool NETW_EXPORT_H
 netw_init(void);
 
 /* Function: netw_deinit()
  *
  * Shuts down *netw* and frees all resources.
  */
-void
+void NETW_EXPORT_H
 netw_deinit(void);
 
 /* Function: netw_request()
@@ -131,7 +139,7 @@ netw_deinit(void);
  *		receiving the response from the server or fails
  *	in_userdata - userdata handed straight to the callback function
  */
-bool
+bool NETW_EXPORT_H
 netw_request(
   enum netw_verb in_verb,
   char const *in_uri,
@@ -159,7 +167,7 @@ netw_request(
  *		receiving the response from the server or fails
  *	in_userdata - userdata handed straight to the callback function
  */
-bool
+bool NETW_EXPORT_H
 netw_download_to(
   enum netw_verb verb,
   char const *in_uri,
@@ -178,7 +186,7 @@ netw_download_to(
  *	Value of the requested HTTP header field. NULL if no header with
  *	that name is part of the response.
  */
-char const *
+char const * NETW_EXPORT_H
 netw_get_header(struct netw_header const *header, char const *name);
 
 /* Function: netw_set_error_rate()
@@ -189,7 +197,7 @@ netw_get_header(struct netw_header const *header, char const *name);
  * Parameters:
  *  in_percentage - between 0-100. 0 Deactivates this feature.
  */
-void
+void NETW_EXPORT_H
 netw_set_error_rate(int in_percentage);
 
 /* Function: netw_set_delay()
@@ -203,7 +211,7 @@ netw_set_error_rate(int in_percentage);
  *	in_min - minimum delay in milliseconds.
  *	in_max - maximum delay in milliseconds.
  */
-void
+void NETW_EXPORT_H
 netw_set_delay(int in_min, int in_max);
 
 /* Function: netw_percent_encode()
@@ -221,7 +229,7 @@ netw_set_delay(int in_min, int in_max);
  *	A newly allocated (malloc) percent-encoded string.
  *	Do not forget to free() it.
  */
-char *
+char * NETW_EXPORT_H
 netw_percent_encode(char const *in_input, size_t in_len, size_t *out_len);
 
 /* Topic: Headers
@@ -286,7 +294,7 @@ netw_percent_encode(char const *in_input, size_t in_len, size_t *out_len);
  */
 
 #ifdef __cplusplus
-} // extern "C"
+} /* extern "C" */
 #endif
 
-#endif
+#endif /* MINIMOD_NETW_H_INCLUDED */

@@ -1,6 +1,19 @@
 #include "netw.h"
 #import <Foundation/Foundation.h>
 
+#ifdef true
+#undef true
+#endif
+#ifdef false
+#undef false
+#endif
+#ifdef bool
+#undef bool
+#endif
+#define true 1
+#define false (!true)
+#define bool size_t
+
 // You SHOULD set NETW_DELEGATE_NAME to something unique to your project.
 // i.e. "YourProject_netw_Delegate"
 //
@@ -28,6 +41,7 @@
 #else
 #define LOG(...)
 #endif
+
 #define LOGE(FMT, ...) fprintf(stderr, "[netw] " FMT "\n", ##__VA_ARGS__)
 
 #define ASSERT(in_condition)                      \
