@@ -8,12 +8,6 @@
 
 #include <curl/curl.h>
 
-#pragma GCC diagnostic push
-#ifdef __clang__
-#pragma GCC diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
-#endif
-#pragma GCC diagnostic ignored "-Wunused-macros"
-
 #ifdef MINIMOD_LOG_ENABLE
 #define LOG(FMT, ...) printf("[netw] " FMT "\n", ##__VA_ARGS__)
 #else
@@ -35,8 +29,6 @@
 			__builtin_unreachable();              \
 		}                                         \
 	} while (__LINE__ == -1)
-
-#pragma GCC diagnostic pop
 
 struct netw
 {

@@ -1,13 +1,11 @@
 #include "netw.h"
 
-#include <Windows.h>
 #include <stdio.h>
 #include <string.h>
-#include <winhttp.h>
+#include <assert.h>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
-#pragma GCC diagnostic ignored "-Wunused-macros"
+#include <Windows.h>
+#include <winhttp.h>
 
 #ifdef MINIMOD_LOG_ENABLE
 #define LOG(FMT, ...) printf("[netw] " FMT "\n", ##__VA_ARGS__)
@@ -15,23 +13,6 @@
 #define LOG(...)
 #endif
 #define LOGE(FMT, ...) fprintf(stderr, "[netw] " FMT "\n", ##__VA_ARGS__)
-
-#define ASSERT(in_condition)                      \
-	do                                            \
-	{                                             \
-		if (__builtin_expect(!(in_condition), 0)) \
-		{                                         \
-			LOGE(                                 \
-			  "[assertion] %s:%i: '%s'",          \
-			  __FILE__,                           \
-			  __LINE__,                           \
-			  #in_condition);                     \
-			__asm__ volatile("int $0x03");        \
-			__builtin_unreachable();              \
-		}                                         \
-	} while (__LINE__ == -1)
-
-#pragma GCC diagnostic pop
 
 #define LOG_ERR(X) LOGE(X " failed %lu", GetLastError())
 
@@ -316,7 +297,7 @@ netw_header_from_raw_header(struct netw_header *hdr, char *buffer)
 
 		// check if line contains a colon
 		end_of_line = strchr(ptr, '\r');
-		ASSERT(end_of_line);
+		assert(end_of_line);
 		colon = memchr(ptr, ':', (size_t)(end_of_line - ptr));
 		if (colon)
 		{
@@ -366,7 +347,7 @@ free_netw_header(struct netw_header *hdr)
 
 
 static DWORD
-task_handler(LPVOID context)
+__RPC_CALLEE task_handler(LPVOID context)
 {
 	struct task *task = context;
 
@@ -441,7 +422,7 @@ task_handler(LPVOID context)
 	  WINHTTP_NO_OUTPUT_BUFFER,
 	  &header_bytes,
 	  WINHTTP_NO_HEADER_INDEX);
-	ASSERT(ok == FALSE);
+	assert(ok == FALSE);
 	LOG("header-bytes: %lu", header_bytes);
 
 	LPWSTR header_buffer = malloc(header_bytes);
@@ -452,7 +433,7 @@ task_handler(LPVOID context)
 	  header_buffer,
 	  &header_bytes,
 	  WINHTTP_NO_HEADER_INDEX);
-	ASSERT(ok == TRUE);
+	assert(ok == TRUE);
 
 	char *header_utf8 = utf8_from_utf16(header_buffer, NULL);
 	free(header_buffer);
@@ -482,7 +463,7 @@ task_handler(LPVOID context)
 				WinHttpReadData(hrequest, buffer, m, &actual_bytes_read);
 				LOG("Read %lu from %lu bytes", actual_bytes_read, avail_bytes);
 				nitems = fwrite(buffer, actual_bytes_read, 1, task->file);
-				ASSERT(nitems == 1);
+				assert(nitems == 1);
 			}
 		} while (avail_bytes > 0);
 
@@ -629,7 +610,8 @@ netw_request(
 		free(header);
 	}
 
-	HANDLE h = CreateThread(NULL, 0, task_handler, task, 0, NULL);
+	HANDLE h = CreateThread(NULL, 0,
+	                        task_handler, task, 0, NULL);
 	if (h)
 	{
 		CloseHandle(h);
@@ -657,7 +639,7 @@ netw_download_to(
 	struct task *task;
 	size_t urilen;
 	wchar_t *uri;
-	ASSERT(fout);
+	assert(fout);
 	if (l_netw.error_rate > 0 && is_random_server_error())
 	{
 		LOG("Failing request: %s", in_uri);
@@ -703,7 +685,8 @@ netw_download_to(
 		free(header);
 	}
 
-	HANDLE h = CreateThread(NULL, 0, task_handler, task, 0, NULL);
+	HANDLE h = CreateThread(NULL, 0, task_handler,
+	                        task, 0, NULL);
 	if (h)
 	{
 		CloseHandle(h);
@@ -720,7 +703,7 @@ netw_download_to(
 void
 netw_set_error_rate(int in_percentage)
 {
-	ASSERT(in_percentage >= 0 && in_percentage <= 100);
+	assert(in_percentage >= 0 && in_percentage <= 100);
 	l_netw.error_rate = in_percentage;
 }
 
@@ -728,8 +711,8 @@ netw_set_error_rate(int in_percentage)
 void
 netw_set_delay(int in_min, int in_max)
 {
-	ASSERT(in_min >= 0);
-	ASSERT(in_max >= in_min);
+	assert(in_min >= 0);
+	assert(in_max >= in_min);
 	l_netw.min_delay = in_min;
 	l_netw.max_delay = in_max;
 }
