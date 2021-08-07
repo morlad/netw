@@ -11,6 +11,6 @@
 #define true 1
 #define false (!true)
 
-#endif
+#endif /* !defined(_STDBOOL_H) && !defined(bool) */
 
 #endif /* NETW_STDBOOL_H */

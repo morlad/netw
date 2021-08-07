@@ -3,11 +3,11 @@ string(REPLACE " " "_" LIBRARY_NAME "${LIBRARY_NAME}")
 
 include(GenerateExportHeader)
 
-set(Header_Files "netw.h")
+set(Header_Files "netw.h") #  "${CMAKE_BINARY_DIR}/config/${PROJECT_NAME}Config.h"
 source_group("Header Files" FILES "${Header_Files}")
 
 set(_libs "")
-set(Source_Files "netw.c" stdbool.h)
+set(Source_Files "netw.c")
 if (APPLE)
   list(APPEND Source_Files "netw-macos.m")
   find_library(FOUNDATION_LIBRARY Foundation ONLY)
@@ -34,12 +34,12 @@ target_include_directories(
 target_link_libraries("${LIBRARY_NAME}" PUBLIC "${PROJECT_LOWER_NAME}_compiler_flags")
 target_link_libraries("${LIBRARY_NAME}" PRIVATE "${_libs}")
 
-set_target_properties(
-        "${LIBRARY_NAME}"
-        PROPERTIES
-        LINKER_LANGUAGE
-        OBJC
-)
+#set_target_properties(
+#        "${LIBRARY_NAME}"
+#        PROPERTIES
+#        LINKER_LANGUAGE
+#        C
+#)
 
 set(_export_file "${CMAKE_CURRENT_SOURCE_DIR}/${LIBRARY_NAME}_export.h")
 generate_export_header("${LIBRARY_NAME}" EXPORT_FILE_NAME "${_export_file}")

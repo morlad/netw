@@ -6,4 +6,6 @@
 #define NETW_VERSION_MINOR @netw_VERSION_MINOR@
 #define NETW_VERSION_PATCH @netw_VERSION_PATCH@
 
+#define NETW_DELEGATE_NAME netw_delegate_name
+
 #endif /* NETW_CONFIG_H */

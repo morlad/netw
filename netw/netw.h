@@ -3,6 +3,7 @@
 #ifndef MINIMOD_NETW_H_INCLUDED
 #define MINIMOD_NETW_H_INCLUDED
 #include "netw_export.h"
+#include "netwConfig.h"
 
 /* Title: netw
  *
@@ -42,6 +43,7 @@ extern "C" {
 #else
 #include "stdbool.h"
 #endif
+#endif /* __cplusplus */
 
 /* Section: API */
 
@@ -295,4 +297,4 @@ netw_percent_encode(char const *in_input, size_t in_len, size_t *out_len);
 } /* extern "C" */
 #endif
 
-#endif
+#endif /* MINIMOD_NETW_H_INCLUDED */

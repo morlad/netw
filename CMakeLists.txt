@@ -40,10 +40,9 @@ elseif(UNIX)
     set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib")
 endif()
 
-# configure a header file to pass the version number only
 configure_file(
         "${PROJECT_NAME}Config.h.in"
-        "${PROJECT_NAME}Config.h"
+        "config/${PROJECT_NAME}Config.h"
 )
 
 set(original_deps "netw" "netw/example")
@@ -58,11 +57,11 @@ endforeach ()
 #        LINKER_LANGUAGE
 #        C
 #)
-#
+
 ## add the binary tree to the search path for include files
 ## so that we will find "${PROJECT_NAME}Config.h"
-#target_include_directories(
-#        "${PROJECT_NAME}"
-#        PUBLIC
-#        "${PROJECT_BINARY_DIR}"
-#)
+target_include_directories(
+        "${PROJECT_NAME}"
+        PUBLIC
+        "${PROJECT_BINARY_DIR}/config"
+)
