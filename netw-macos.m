@@ -30,6 +30,12 @@
 #endif
 #define LOGE(FMT, ...) fprintf(stderr, "[netw] " FMT "\n", ##__VA_ARGS__)
 
+#if defined(__aarch64__)
+#define NETW_BREAK __asm__ volatile("brk 0");
+#else
+#define NETW_BREAK __asm__ volatile("int $0x03");
+#endif
+
 #define ASSERT(in_condition)                      \
 	do                                            \
 	{                                             \
@@ -40,7 +46,7 @@
 			  __FILE__,                           \
 			  __LINE__,                           \
 			  #in_condition);                     \
-			__asm__ volatile("int $0x03");        \
+			NETW_BREAK                            \
 			__builtin_unreachable();              \
 		}                                         \
 	} while (__LINE__ == -1)
