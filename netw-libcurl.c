@@ -48,7 +48,7 @@ static struct netw l_netw;
 
 
 static void
-random_delay()
+random_delay(void)
 {
 	if (l_netw.max_delay > 0)
 	{

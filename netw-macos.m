@@ -90,7 +90,7 @@ struct task
 
 
 static void
-random_delay()
+random_delay(void)
 {
 	if (l_netw.max_delay > 0)
 	{
